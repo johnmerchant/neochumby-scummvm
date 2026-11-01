@@ -1,0 +1,4 @@
+/target/
+# Scratch: builds, downloads, trees, captures. Game data is never committed.
+/work/
+/data/

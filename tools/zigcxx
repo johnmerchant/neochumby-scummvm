@@ -1,0 +1,10 @@
+#!/bin/sh
+# zig c++ for the Chumby Classic: static musl, ARM926EJ-S, soft float, as
+# neochumby's tools/zigcc is for C. ScummVM's configure takes it as CXX. zig
+# hands the preprocessor-only runs configure makes straight to clang, which
+# does not know its CPU names.
+case " $* " in
+  *" -E "*) cpu=-march=armv5te ;;
+  *) cpu=-mcpu=arm926ej_s ;;
+esac
+exec "${ZIG:-zig}" c++ -target arm-linux-musleabi "$cpu" "$@"

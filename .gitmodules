@@ -1,0 +1,4 @@
+[submodule "third_party/scummvm"]
+	path = third_party/scummvm
+	url = https://github.com/scummvm/scummvm
+	shallow = true

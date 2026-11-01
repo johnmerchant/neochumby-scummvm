@@ -1,0 +1,29 @@
+[package]
+name = "neochumby-scummvm"
+description = "ScummVM on the Chumby Classic, as a neochumby app. A built binary links ScummVM and is distributed under GPL-3.0-or-later"
+# What is in this crate: src/, build.rs, tools/ and the docs are MIT;
+# backend-gpl/ and third_party/scummvm (a submodule) are ScummVM's licence,
+# GPL-3.0-or-later. The binary this builds links them, so the binary as a whole
+# is GPL-3.0-or-later, not MIT. See README.md, "Licences".
+license = "MIT AND GPL-3.0-or-later"
+version = "0.1.0"
+edition = "2024"
+publish = false
+repository = "https://github.com/johnmerchant/neochumby-scummvm"
+
+[dependencies]
+libc = "0.2"
+miniz_oxide = { version = "0.8", features = ["with-alloc"] }
+# By commit: crates.io's 0.0.8 reads the top button as the stock kernel has it,
+# not as Linux 7's input device.
+neochumby = { git = "https://github.com/johnmerchant/neochumby", rev = "ecdcae35a347b6d718b1f82a02c691a0132250b3" }
+
+[package.metadata.neochumby]
+title = "SCUMMVM"
+exec = "neochumby-scummvm"
+color = "3f9b3c"
+# A game: no service may replace it in front. The top button is its menu, so
+# that a press can't lose an unsaved game.
+interrupt = false
+button = true
+access = ["fb", "touch", "speaker", "storage"]

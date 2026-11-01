@@ -1,0 +1,57 @@
+#!/bin/sh
+# Configures and builds ScummVM (third_party/scummvm, unchanged) for the
+# Chumby Classic in OUT, leaving its objects and archives there for build.rs
+# to link, with our backend (backend-gpl/). Only the engines the games need,
+# and none of its optional libraries: no network, no OpenGL, no codecs.
+#
+#   tools/build-scummvm OUT
+#
+# configure links test programs. zig's compiler_rt, on ARMv5, refers to
+# __sync_* that Rust's compiler_builtins supplies in the real link; here
+# they are stubs, seen only by configure's test programs.
+set -eu
+root=$(cd "$(dirname "$0")/.." && pwd)
+out=$1
+mkdir -p "$out"
+out=$(cd "$out" && pwd)
+: "${JOBS:=$(nproc 2>/dev/null || sysctl -n hw.ncpu)}"
+stub=$out/sync-stub.o
+if [ ! -f "$stub" ]; then
+  for op in fetch_and_add fetch_and_sub fetch_and_and fetch_and_or fetch_and_xor fetch_and_nand \
+    fetch_and_umin fetch_and_umax fetch_and_min fetch_and_max \
+    add_and_fetch sub_and_fetch and_and_fetch or_and_fetch xor_and_fetch nand_and_fetch \
+    val_compare_and_swap bool_compare_and_swap lock_test_and_set lock_release; do
+    for n in 1 2 4 8; do
+      printf '.globl __sync_%s_%s\n__sync_%s_%s:\n bx lr\n' "$op" "$n" "$op" "$n"
+    done
+  done > "$out/sync-stub.S"
+  "${ZIG:-zig}" cc -target arm-linux-musleabi -mcpu=arm926ej_s -c "$out/sync-stub.S" -o "$stub"
+fi
+# configure finds the endianness by looking for a marker with strings(1) in a
+# linked test program, from which the linker has dropped it. The Chumby is
+# little-endian.
+mkdir -p "$out/bin"
+printf '#!/bin/sh\necho LiTTleEnDian\n' > "$out/bin/say-little-endian"
+chmod +x "$out/bin/say-little-endian"
+cd "$out"
+if [ ! -f config.mk ] || [ "$root/tools/build-scummvm" -nt config.mk ]; then
+  STRINGS=$out/bin/say-little-endian LDFLAGS=$stub CXX=$root/tools/zigcxx AR=$root/tools/zigar \
+  RANLIB=$root/tools/zigranlib STRIP=true \
+  CXXFLAGS="-Os -ffunction-sections -fdata-sections -fno-exceptions" \
+  "$root/third_party/scummvm/configure" --host=arm-linux-musleabi --backend=null \
+    --disable-all-engines --enable-engine=sky,queen,lure,drascula,dreamweb,cge,parallaction \
+    --disable-detection-full --enable-release --disable-debug --disable-Werror --disable-optimizations \
+    --disable-16bit --disable-highres --disable-scalers --disable-hq-scalers --disable-edge-scalers \
+    --disable-aspect --disable-translation --disable-taskbar --disable-cloud --disable-system-dialogs \
+    --disable-eventrecorder --disable-tts --disable-mt32emu --disable-nuked-opl --disable-lua \
+    --disable-bink --disable-tinygl --disable-opengl-game --disable-seq-midi --disable-timidity \
+    --disable-alsa --disable-sndio --disable-fluidsynth --disable-fluidlite --disable-sonivox \
+    --disable-libcurl --disable-sdlnet --disable-enet --disable-discord --disable-png --disable-jpeg \
+    --disable-gif --disable-freetype2 --disable-theoradec --disable-vpx --disable-ogg --disable-vorbis \
+    --disable-tremor --disable-flac --disable-mad --disable-faad --disable-fribidi --disable-zlib \
+    --disable-savegame-timestamp --disable-readline --disable-gtk --disable-libunity > configure.out 2>&1 || {
+      tail -20 configure.out >&2
+      exit 1
+    }
+fi
+make -j"$JOBS" -f Makefile -f "$root/backend-gpl/chumby.mk" chumby-all
