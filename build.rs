@@ -28,6 +28,9 @@ fn main() {
     for file in list.split_whitespace() {
         println!("cargo:rustc-link-arg={}", out.join(file).display());
     }
+    for lib in ["libvorbisidec.a", "libogg.a"] {
+        println!("cargo:rustc-link-arg={}", out.join("vorbis/lib").join(lib).display());
+    }
     println!("cargo:rustc-link-arg=-Wl,--end-group");
     println!("cargo:rustc-link-arg=-lc++");
 }

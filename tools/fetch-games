@@ -81,3 +81,31 @@ catalog | while read -r id dir zip want data; do
   [ "$data" = - ] || cp "$root/third_party/scummvm/dists/engine-data/$data" "$app/engine-data/"
   echo "$id: $(du -sk "$app/games/$id" | cut -f1) KiB" >&2
 done
+
+# Drascula's music, the Ogg Vorbis pack. The game finds it in audio/. The pack's
+# own readme.txt, its licence, shares a name with the game's, so what isn't
+# audio/ goes in music-pack/, whole, and neither is overwritten.
+if wanted drascula "$@"; then
+  zip=drascula-audio-2.0.zip
+  dir=Drascula_%20The%20Vampire%20Strikes%20Back
+  want=7e6afba36eed13dd02e0360119e9a6a8d0e7b334ddc11d7c46ab7faceb8fe401
+  dl=$cache/$zip
+  if [ ! -f "$dl" ] || [ "$(sha256 "$dl")" != "$want" ]; then
+    echo "fetching $zip" >&2
+    curl -fsSL -o "$dl.part" "$base/$dir/$zip"
+    mv "$dl.part" "$dl"
+  fi
+  got=$(sha256 "$dl")
+  [ "$got" = "$want" ] || {
+    rm -f "$dl"
+    echo "fetch-games: $zip: SHA-256 $got, not $want" >&2
+    exit 1
+  }
+  game=$app/games/drascula
+  rm -rf "$game/audio" "$game/music-pack"
+  python3 -I -m zipfile -e "$dl" "$game/music-pack"
+  mv "$game/music-pack/audio" "$game/audio"
+  printf '%s\nsha256 %s\nThe licence is readme.txt in this directory, as the archive has it. audio/ is one level up.\n' \
+    "$base/$dir/$zip" "$want" > "$game/music-pack/SOURCE.txt"
+  echo "drascula music: $(du -sk "$game/audio" | cut -f1) KiB" >&2
+fi

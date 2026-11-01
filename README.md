@@ -28,7 +28,7 @@ tools/tree /tmp/tree -d /tmp/data \
 cache: `shallow` in `.gitmodules` doesn't help, as git fetches a release tag's commit
 with its whole history when that isn't a branch's tip. A first build takes a minute or
 so on a fast machine. Without `-d` the app is there,
-and lists every game as not installed. The whole set is 106 MB on the stick.
+and lists every game as not installed. The whole set is 141 MB on the stick.
 
 ## What's in it
 
@@ -37,7 +37,7 @@ and lists every game as not installed. The whole set is 106 MB on the stick.
 | Beneath a Steel Sky (floppy) | sky | 8.5 MB | |
 | Flight of the Amazon Queen (floppy) | queen | 22 MB | |
 | Lure of the Temptress | lure | 7 MB | |
-| Drascula: The Vampire Strikes Back | drascula | 32 MB | No music: that's a separate add-on, needing a decoder this build leaves out |
+| Drascula: The Vampire Strikes Back, with its music pack | drascula | 68 MB (36 MB of it music) | The music is Ogg Vorbis, decoded in integer arithmetic by Tremor |
 | Dreamweb (floppy, UK) | dreamweb | 22 MB | Its terminals want typing: the keys |
 | Soltys | cge | 8 MB | |
 | Nippon Safes, Inc. (DOS) | parallaction | 6.5 MB | |
@@ -109,6 +109,8 @@ See "Measured", below, for what a save takes.
   carries the GPL and a notice saying where its source is (`files/`). If you pass a
   binary on, you pass on those obligations: the source, at the commit it was built
   from.
+- Tremor and libogg (`third_party/`, unchanged, submodules) are Xiph.org's, under their
+  BSD licences, carried in `files/` and named in `NOTICE`.
 - The games are their rights holders', under the licence beside each, and aren't
   covered by any of the above.
 
@@ -121,7 +123,7 @@ been offered upstream. Read them before offering any of it.
 ## How it's built
 
 ScummVM's `configure` runs with the `null` backend for its build system, seven
-engines and none of its optional libraries: no OpenGL, no network, no codecs, no
+engines and, of its optional libraries, only Tremor and libogg: no OpenGL, no network, no other codecs, no
 16-bit colour modes, no scalers. Its objects are linked with `backend-gpl/chumby.cpp`
 in place of the null backend, and that calls the Rust side (`src/backend.rs`) for the
 framebuffer, touch, top button, speaker and quota, through neochumby's crate. ScummVM
@@ -140,7 +142,7 @@ On the emulator, at ScummVM v2026.4.0:
 
 | | |
 | --- | --- |
-| Binary, stripped, static | 4.0 MB (text 3.97 MB, data 51 KB, bss 1.1 MB) |
+| Binary, stripped, static | 4.14 MB (text 4.09 MB, data 51 KB, bss 1.1 MB), of which Tremor and libogg are 114 KB |
 | The list, while a game runs | 0.7 MB resident |
 | Least `MemAvailable` seen, with Drascula | 32 MB |
 
@@ -149,7 +151,7 @@ On the emulator, at ScummVM v2026.4.0:
 | Beneath a Steel Sky | 7.3 MB | 12.7 KB + 46 bytes of index (56.7 KB) |
 | Flight of the Amazon Queen | 6.2 MB | not measured |
 | Lure of the Temptress | 7.5 MB | 11.4 KB |
-| Drascula | 14.0 MB | not measured |
+| Drascula, with music | 14.0 MB (11.3 MB at the same point without it) | not measured |
 | Dreamweb | 8.7 MB | not measured: its menu refuses, and it saves on its own screens |
 | Soltys | 5.8 MB | not measured |
 | Nippon Safes | 5.4 MB | not measured |
@@ -169,7 +171,7 @@ on a host.
 | Beneath a Steel Sky | yes | Foster walks to it |
 | Flight of the Amazon Queen | yes | Joe walks to it; a verb is chosen in the panel |
 | Lure of the Temptress | yes | Walks to it. A hold opens "Look through" on a window |
-| Drascula | yes, with a dialog about CD music to tap OK | Advances the talk; in the first room, a hold opens the inventory |
+| Drascula | yes, with its music | Advances the talk; in the first room, a hold opens the inventory |
 | Dreamweb | yes | Tapping the bed shows its description |
 | Soltys | yes | The farmer answers; the pointer follows |
 | Nippon Safes | yes | Chooses a language, then a new or restored game |
@@ -182,6 +184,11 @@ fit, refused and logged, with the app left running: with more than the limit put
 by hand, the session ended the app, which is why that check exists. Sound: a capture
 from the emulator's speaker through Steel Sky's intro has a peak of 13074 and is 88%
 non-zero.
+
+**Drascula's music:** with the pack, the game holds `audio/track25.ogg` open, and the
+speaker's capture over its opening has a peak of 22735 and is 86% non-zero. With
+`audio/` moved aside, its opening is entirely silent (peak 0) and the game shows
+its dialog about missing CD music.
 
 **Not run:** a real Chumby, or any real speed. Any game played to its end. A save in
 Queen, Drascula, Dreamweb, Soltys or Nippon Safes. How each engine shows a refused
@@ -196,17 +203,30 @@ Saves lasting across a power cycle (see "Saves").
   software on the same CPU, and a stick under 1 MB/s is read in the same thread that
   draws.
   From most to least worried, by what each does and not by measurement: Drascula (the
-  largest memory use, full-screen animation read from one 32 MB file), Dreamweb,
+  largest memory use, full-screen animation read from one 32 MB file, and now its
+  music), Dreamweb,
   Amazon Queen and Steel Sky (AdLib music all through), then Lure, Soltys and Nippon
   Safes. If music is too much, it can be turned off in ScummVM's options, for that
   session: settings don't last.
+- **What music costs, as an estimate and not a device measurement.** On the emulator,
+  Tremor alone decodes `track25.ogg` (49 s of 44.1 kHz stereo, 106 kbit/s) in 3.8 s: 7.7%
+  of one emulated CPU. At 2.7x, the CoreMark ratio given for this emulator against a
+  Chumby, that is about 21% of the device's CPU, plus resampling. A
+  CoreMark run for this estimate, on a busy host, gave 1296 iterations/s against the
+  674 measured on a Chumby, or 1.9x, which would make it 15%. In play, the thread that
+  mixes all sound took 10.5% of the emulated CPU in Drascula with music and 15.8% in
+  Steel Sky with AdLib, and 12.2% in Drascula without music, so that measure's noise is as
+  large as the decoding: read these as "similar to AdLib, and not obviously more", and 2.7x
+  of the mixing thread as about 30 to 45% of the device. Reading the music from the stick is
+  about 13 KB/s. If it's too much, removing `audio/` from a tree turns Drascula's off.
 - **Saves are few, and don't last yet** (see "Saves"). 64 KiB is neochumby's limit for
   any app, and the owner's to change.
 - **The screen is small for ScummVM's menu.** Its menus work at 320x220, with a built-in
   theme, but its dialogs are made for a mouse. The keyboard covers the lower part of the
   screen, including the field being typed in if it's there.
-- **Drascula asks about CD music at each start,** since settings don't last: tap OK.
-  Its music add-on isn't supported.
+- **What Tremor changes:** Drascula's music, and nothing in the other six games here,
+  whose music is AdLib or MIDI as before. Queen's CD versions compressed with Vorbis
+  would now play, but they aren't offered (docs/games.md). MP3 and FLAC stay unsupported.
 - **ESC is each game's own.** In Drascula it can leave the game. In Lure it asks to
   quit, with y or n on the keyboard.
 - **Dreamweb saves on its own screens,** and needs the keyboard for its terminals. Its

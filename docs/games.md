@@ -29,10 +29,32 @@ Base for the URLs is `https://downloads.scummvm.org/frs/extras/`.
 | Soltys, English | Laboratorium Komputerowe Avalon | `license.txt` | "You may distribute this game for free on any medium, provided this license and all associated copyright notices and disclaimers are left intact." | `Soltys/soltys-en-v1.0.zip` | `87b89e654b8a5b8ebe342cb4c5c6049ab9a43a5efb474d9c49bafb77dcce48f6` | **Included** |
 | Nippon Safes, Inc., DOS | Dynabyte Software | `readme.txt` | "You may distribute this game for free on any medium, provided this license and all associated copyright notices and disclaimers are left intact." | `Nippon Safes/nippon-1.0.zip` | `53e7e2c60065e4aed193169bbcdcfd1113fa68d3efe1c8240ba073c0e20d613f` | **Included** (see the note) |
 
+### Drascula's music
+
+| Add-on | Copyright, as the licence file states it | Licence file in the archive | Permission text | Source URL | SHA-256 of the archive | Decision |
+| --- | --- | --- | --- | --- | --- | --- |
+| Music pack, Ogg Vorbis, 34.8 MiB | Alcachofa Soft S.L. | `readme.txt`, "The Legal Stuff" | "You may distribute "DRASCULA" for free on any medium, provided this Readme and all associated copyright notices and disclaimers are left intact." | `Drascula_ The Vampire Strikes Back/drascula-audio-2.0.zip` | `7e6afba36eed13dd02e0360119e9a6a8d0e7b334ddc11d7c46ab7faceb8fe401` | **Included** |
+
+Its licence is word for word the game's, with its six clauses, including the right
+to modify and the "adaptation for SCUMMVM" heading noted below. Downloaded and read.
+
+ScummVM's games page offers the same music as Vorbis (34.8 MiB), MP3 (28.1 MiB,
+`drascula-audio-mp3-2.0.zip`) and FLAC (250.4 MiB, `drascula-audio-flac-2.0.zip`).
+Vorbis is chosen, because Tremor decodes it in integer arithmetic. The MP3 and FLAC
+archives were not downloaded, and their licence files not read.
+
+The pack's `readme.txt` has the same name as the game's, and unpacking both as its
+readme says would overwrite one licence with the other. So `tools/fetch-games` puts
+the tracks in `games/drascula/audio/`, where the game looks, and the pack's other files
+in `games/drascula/music-pack/`, where they stay as they are.
+
+### Left out
+
 Other versions on the same page, with the same kind of licence, are **left out for
 size or need, not for permission**: the CD versions (66 to 230 MB, speech over USB
-at under 1 MB/s) and Drascula's music add-ons (need Vorbis, MP3 or FLAC decoders
-this build leaves out). Their licence files have not been read.
+at under 1 MB/s). Their licence files have not been read. Tremor would let this
+build read Queen's Vorbis-compressed CD versions (French, German, Hebrew, Italian), but
+none is added, and Queen's English CD version is MP3, which it can't.
 
 Excluded on principle: any commercial game, abandonware, and anything not on
 ScummVM's own download site. No such game is offered.

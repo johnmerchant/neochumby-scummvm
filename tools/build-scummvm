@@ -2,7 +2,8 @@
 # Configures and builds ScummVM (third_party/scummvm, unchanged) for the
 # Chumby Classic in OUT, leaving its objects and archives there for build.rs
 # to link, with our backend (backend-gpl/). Only the engines the games need,
-# and none of its optional libraries: no network, no OpenGL, no codecs.
+# and of its optional libraries only Tremor and libogg, for Drascula's music: no
+# network, no OpenGL, no other codecs, and no floating-point Vorbis.
 #
 #   tools/build-scummvm OUT
 #
@@ -33,6 +34,39 @@ fi
 mkdir -p "$out/bin"
 printf '#!/bin/sh\necho LiTTleEnDian\n' > "$out/bin/say-little-endian"
 chmod +x "$out/bin/say-little-endian"
+# Tremor, Xiph's integer-only Vorbis decoder, and libogg, for Drascula's music:
+# static, into a prefix laid out as ScummVM's configure expects to find them.
+# _ARM_ASSEM_ is Tremor's own multiply routines for ARM (asm_arm.h).
+vorbis=$out/vorbis
+if [ ! -f "$vorbis/lib/libvorbisidec.a" ] || [ "$root/tools/build-scummvm" -nt "$vorbis/lib/libvorbisidec.a" ]; then
+  rm -rf "$vorbis"
+  mkdir -p "$vorbis/include/ogg" "$vorbis/include/tremor" "$vorbis/lib" "$vorbis/obj"
+  cp "$root/third_party/ogg/include/ogg/ogg.h" "$root/third_party/ogg/include/ogg/os_types.h" "$vorbis/include/ogg/"
+  # What libogg's configure would fill in, for this one target.
+  cat > "$vorbis/include/ogg/config_types.h" << 'EOF'
+#ifndef __CONFIG_TYPES_H__
+#define __CONFIG_TYPES_H__
+#include <stdint.h>
+typedef int16_t ogg_int16_t;
+typedef uint16_t ogg_uint16_t;
+typedef int32_t ogg_int32_t;
+typedef uint32_t ogg_uint32_t;
+typedef int64_t ogg_int64_t;
+typedef uint64_t ogg_uint64_t;
+#endif
+EOF
+  t=$root/third_party/tremor
+  cp "$t/ivorbiscodec.h" "$t/ivorbisfile.h" "$t/config_types.h" "$vorbis/include/tremor/"
+  cc() { "${ZIG:-zig}" cc -target arm-linux-musleabi -mcpu=arm926ej_s -O2 -w -I"$vorbis/include" "$@"; }
+  for f in bitwise framing; do
+    cc -c "$root/third_party/ogg/src/$f.c" -o "$vorbis/obj/ogg-$f.o"
+  done
+  for f in mdct block window synthesis info floor1 floor0 vorbisfile res012 mapping0 registry codebook sharedbook; do
+    cc -D_ARM_ASSEM_ -DHAVE_ALLOCA_H -c "$t/$f.c" -o "$vorbis/obj/tremor-$f.o"
+  done
+  "$root/tools/zigar" cr "$vorbis/lib/libogg.a" "$vorbis"/obj/ogg-*.o
+  "$root/tools/zigar" cr "$vorbis/lib/libvorbisidec.a" "$vorbis"/obj/tremor-*.o
+fi
 cd "$out"
 if [ ! -f config.mk ] || [ "$root/tools/build-scummvm" -nt config.mk ]; then
   STRINGS=$out/bin/say-little-endian LDFLAGS=$stub CXX=$root/tools/zigcxx AR=$root/tools/zigar \
@@ -47,8 +81,8 @@ if [ ! -f config.mk ] || [ "$root/tools/build-scummvm" -nt config.mk ]; then
     --disable-bink --disable-tinygl --disable-opengl-game --disable-seq-midi --disable-timidity \
     --disable-alsa --disable-sndio --disable-fluidsynth --disable-fluidlite --disable-sonivox \
     --disable-libcurl --disable-sdlnet --disable-enet --disable-discord --disable-png --disable-jpeg \
-    --disable-gif --disable-freetype2 --disable-theoradec --disable-vpx --disable-ogg --disable-vorbis \
-    --disable-tremor --disable-flac --disable-mad --disable-faad --disable-fribidi --disable-zlib \
+    --disable-gif --disable-freetype2 --disable-theoradec --disable-vpx --disable-vorbis \
+    --enable-ogg --enable-tremor --with-ogg-prefix="$vorbis" --with-tremor-prefix="$vorbis" --disable-flac --disable-mad --disable-faad --disable-fribidi --disable-zlib \
     --disable-savegame-timestamp --disable-readline --disable-gtk --disable-libunity > configure.out 2>&1 || {
       tail -20 configure.out >&2
       exit 1

@@ -8,6 +8,11 @@ https://github.com/scummvm/scummvm), and neochumby's crates at the commit its
 Cargo.toml names. ScummVM is the legal property of its developers: see COPYRIGHT in
 its source.
 
+It also links Tremor, Xiph.org's integer-only Vorbis decoder, and libogg, each
+Copyright (c) Xiph.org Foundation, under the BSD licence in COPYING.tremor and
+COPYING.ogg. Their source is the submodules third_party/tremor and third_party/ogg
+of the same repository.
+
 The games in games/ are not part of it. Each is its rights holders', under the
 licence file beside it.
 

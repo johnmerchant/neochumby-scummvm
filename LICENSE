@@ -21,6 +21,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 This licence covers the code written for this repository, apart from
-backend-gpl/ and third_party/. backend-gpl/ and third_party/scummvm are under
+backend-gpl/ and third_party/. Tremor and libogg in third_party/ are under their
+own BSD licences. backend-gpl/ and third_party/scummvm are under
 the GNU General Public License, version 3 or later (backend-gpl/COPYING). A
 built binary links them, and is distributed as a whole under GPL-3.0-or-later.
