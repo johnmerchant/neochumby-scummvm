@@ -24,8 +24,10 @@ tools/tree /tmp/tree -d /tmp/data \
   'git+https://github.com/johnmerchant/neochumby-scummvm#FULL_COMMIT_ID'
 ```
 
-`tools/tree` checks out the ScummVM submodule itself (shallow, about 550 MB), and a
-first build takes a minute or so on a fast machine. Without `-d` the app is there,
+`tools/tree` checks out the ScummVM submodule itself, which takes about 3 GB in its
+cache: `shallow` in `.gitmodules` doesn't help, as git fetches a release tag's commit
+with its whole history when that isn't a branch's tip. A first build takes a minute or
+so on a fast machine. Without `-d` the app is there,
 and lists every game as not installed. The whole set is 106 MB on the stick.
 
 ## What's in it
